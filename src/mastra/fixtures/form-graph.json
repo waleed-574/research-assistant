@@ -1,0 +1,164 @@
+{
+  "title": "Machine Learning Laptop Research",
+  "description": "Help us find the best laptop for your ML workload and budget",
+  "fields": [
+    {
+      "id": "budget_amount",
+      "label": "Maximum budget",
+      "type": "number",
+      "placeholder": "2000",
+      "helpText": "Your budget in EUR (we'll also check USD pricing for availability)",
+      "required": true
+    },
+    {
+      "id": "primary_frameworks",
+      "label": "Which ML frameworks will you use?",
+      "type": "multiselect",
+      "helpText": "Select all that apply",
+      "required": true,
+      "options": [
+        {
+          "value": "pytorch",
+          "label": "PyTorch"
+        },
+        {
+          "value": "tensorflow",
+          "label": "TensorFlow"
+        },
+        {
+          "value": "jax",
+          "label": "JAX"
+        },
+        {
+          "value": "scikit",
+          "label": "scikit-learn / classical ML"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ]
+    },
+    {
+      "id": "model_types",
+      "label": "What types of models will you train?",
+      "type": "multiselect",
+      "required": true,
+      "options": [
+        {
+          "value": "vision",
+          "label": "Computer vision (CNNs, image models)"
+        },
+        {
+          "value": "nlp",
+          "label": "NLP / transformers"
+        },
+        {
+          "value": "tabular",
+          "label": "Tabular data / classical ML"
+        },
+        {
+          "value": "rl",
+          "label": "Reinforcement learning"
+        },
+        {
+          "value": "other",
+          "label": "Other"
+        }
+      ]
+    },
+    {
+      "id": "dataset_size",
+      "label": "Typical dataset size",
+      "type": "select",
+      "helpText": "Affects RAM and storage requirements",
+      "required": true,
+      "options": [
+        {
+          "value": "small",
+          "label": "Small (< 10 GB)"
+        },
+        {
+          "value": "medium",
+          "label": "Medium (10-50 GB)"
+        },
+        {
+          "value": "large",
+          "label": "Large (50-200 GB)"
+        },
+        {
+          "value": "very_large",
+          "label": "Very large (> 200 GB)"
+        }
+      ]
+    },
+    {
+      "id": "portability_priority",
+      "label": "How important is portability?",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "very",
+          "label": "Very important - frequent travel, need lightweight"
+        },
+        {
+          "value": "moderate",
+          "label": "Moderate - occasional mobility"
+        },
+        {
+          "value": "low",
+          "label": "Low - mostly desk use, performance over weight"
+        }
+      ]
+    },
+    {
+      "id": "battery_life_needed",
+      "label": "Do you need to train models on battery power?",
+      "type": "boolean",
+      "helpText": "Or will you always be plugged in during training?",
+      "required": false,
+      "dependsOn": {
+        "logic": "all",
+        "conditions": [
+          {
+            "fieldId": "portability_priority",
+            "operator": "not_equals",
+            "value": "low"
+          }
+        ]
+      }
+    },
+    {
+      "id": "os_preference",
+      "label": "Operating system preference",
+      "type": "select",
+      "required": true,
+      "options": [
+        {
+          "value": "linux",
+          "label": "Linux"
+        },
+        {
+          "value": "windows",
+          "label": "Windows"
+        },
+        {
+          "value": "mac",
+          "label": "macOS"
+        },
+        {
+          "value": "flexible",
+          "label": "Flexible / no preference"
+        }
+      ]
+    },
+    {
+      "id": "additional_requirements",
+      "label": "Any other requirements or constraints?",
+      "type": "textarea",
+      "placeholder": "e.g., specific ports needed, display preferences, brand preferences, availability timeline...",
+      "required": false
+    }
+  ]
+}
