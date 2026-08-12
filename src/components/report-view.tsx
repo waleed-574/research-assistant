@@ -24,10 +24,10 @@ export function ReportView({
     <article className="flex flex-col gap-8">
       <header className="flex flex-col gap-3">
         <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          {report.title}
+          {report.title.trim()}
         </h1>
         <p className="text-[15px] leading-7 text-zinc-600 dark:text-zinc-300">
-          {report.summary}
+          {report.summary.trim()}
         </p>
         <p className="text-xs text-zinc-500 dark:text-zinc-400">
           {report.sources.length} sources · {steps} research steps
@@ -140,7 +140,7 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
       <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
-        {title}
+        {title.trim()}
       </h2>
       {children}
     </section>
