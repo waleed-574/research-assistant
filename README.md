@@ -14,6 +14,16 @@ findings reference providers and regulations that apply to you.
 
 Built with [Next.js](https://nextjs.org) (App Router) and [Mastra](https://mastra.ai).
 
+## Pages
+
+The app is two pages, sharing one design system (logo, Geist sans/mono pairing, zinc palette,
+emerald accent):
+
+| Route | Page |
+| --- | --- |
+| `/` | **Marketing landing** — a single-scroll page that introduces the tool (hero, how-it-works, features, the location differentiator, CTA). Fully static. |
+| `/app` | **The app** — the interview → form → research → report flow. |
+
 ---
 
 ## How it works
@@ -47,7 +57,8 @@ cp .env.example .env.local   # then add your keys (see below)
 npm run dev
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000> for the landing page, or <http://localhost:3000/app> to go straight to
+the app.
 
 ### API keys
 
