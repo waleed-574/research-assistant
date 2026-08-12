@@ -41,11 +41,11 @@ import { ResearchProgress } from "./research-progress";
 
 type Stage = "interview" | "form" | "researching" | "report";
 
-const STAGES: { id: Stage; label: string }[] = [
-  { id: "interview", label: "Interview" },
-  { id: "form", label: "Your form" },
-  { id: "researching", label: "Research" },
-  { id: "report", label: "Report" },
+const STAGES: { id: Stage; label: string; heading: string }[] = [
+  { id: "interview", label: "Interview", heading: "What do you want to research?" },
+  { id: "form", label: "Your form", heading: "Review your form" },
+  { id: "researching", label: "Research", heading: "Researching your question" },
+  { id: "report", label: "Report", heading: "Your research report" },
 ];
 
 export function ResearchApp() {
@@ -186,18 +186,25 @@ export function ResearchApp() {
     [answers, form],
   );
 
+  const activeIndex = STAGES.findIndex((s) => s.id === stage);
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-12">
-      <header className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h1 className="text-lg font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Research Assistant
-          </h1>
+      <header className="flex flex-col gap-5">
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <span className="font-mono text-[11px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+              Step {activeIndex + 1} of {STAGES.length}
+            </span>
+            <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+              {STAGES[activeIndex]?.heading}
+            </h1>
+          </div>
           {stage !== "interview" && (
             <button
               type="button"
               onClick={reset}
-              className="text-xs text-zinc-500 underline underline-offset-2 transition hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+              className="text-xs font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
             >
               Start over
             </button>
@@ -224,7 +231,11 @@ export function ResearchApp() {
       {(stage === "interview" || stage === "form") && (
         <section className="flex flex-col gap-4">
           {messages.length === 0 && (
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-5 dark:border-zinc-800 dark:bg-zinc-900/50">
+            <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+              <span className="mb-3 inline-flex items-center gap-2 font-mono text-[11px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Start here
+              </span>
               <p className="text-sm leading-6 text-zinc-700 dark:text-zinc-300">
                 Tell me what you want to research and I&apos;ll ask a couple of
                 questions, then build you a form. Answering it kicks off a
@@ -238,7 +249,7 @@ export function ResearchApp() {
           )}
 
           {stage === "form" && messages.length > 0 ? (
-            <details className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
+            <details className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
               <summary className="cursor-pointer text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Interview &amp; edits ({messages.length} messages)
               </summary>
@@ -270,9 +281,12 @@ export function ResearchApp() {
 
       {/* ── Form ──────────────────────────────────────────────────────── */}
       {stage === "form" && form && (
-        <section className="flex flex-col gap-6 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900/50">
+        <section className="flex flex-col gap-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm shadow-zinc-900/5 sm:p-8 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-black/20">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900 dark:text-zinc-50">
+            <span className="font-mono text-[11px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+              Generated form
+            </span>
+            <h2 className="mt-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               {form.title}
             </h2>
             {form.description && (
@@ -280,7 +294,8 @@ export function ResearchApp() {
                 {form.description}
               </p>
             )}
-            <p className="mt-2 text-xs text-zinc-400 dark:text-zinc-500">
+            <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/70" />
               {visibleCount} of {form.fields.length} fields shown — the rest
               appear based on your answers.
             </p>
@@ -332,11 +347,13 @@ export function ResearchApp() {
       {/* ── Report ────────────────────────────────────────────────────── */}
       {stage === "report" && result && (
         <section className="flex flex-col gap-8">
-          <ReportView
-            report={result.report}
-            usedMock={result.usedMock}
-            steps={result.steps}
-          />
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm shadow-zinc-900/5 sm:p-8 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-black/20">
+            <ReportView
+              report={result.report}
+              usedMock={result.usedMock}
+              steps={result.steps}
+            />
+          </div>
           <div className="flex flex-wrap gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800">
             <button
               type="button"
@@ -369,27 +386,45 @@ function Stepper({ current }: { current: Stage }) {
   const activeIndex = STAGES.findIndex((s) => s.id === current);
 
   return (
-    <ol className="flex flex-wrap items-center gap-2 text-xs">
+    <ol className="flex items-center gap-2 sm:gap-3">
       {STAGES.map((step, i) => {
         const state = i < activeIndex ? "done" : i === activeIndex ? "active" : "todo";
         return (
-          <li key={step.id} className="flex items-center gap-2">
-            <span
-              className={
-                state === "active"
-                  ? "font-medium text-zinc-900 dark:text-zinc-100"
-                  : state === "done"
-                    ? "text-zinc-500 dark:text-zinc-400"
-                    : "text-zinc-300 dark:text-zinc-600"
-              }
-            >
-              {state === "done" ? "✓ " : ""}
-              {step.label}
+          <li key={step.id} className="flex items-center gap-2 sm:gap-3">
+            <span className="flex items-center gap-2">
+              <span
+                aria-hidden
+                className={`grid h-6 w-6 place-items-center rounded-md border font-mono text-xs transition-colors ${
+                  state === "done"
+                    ? "border-emerald-500 bg-emerald-500 text-white dark:text-zinc-950"
+                    : state === "active"
+                      ? "border-emerald-500 text-emerald-600 dark:text-emerald-400"
+                      : "border-zinc-200 text-zinc-400 dark:border-zinc-800 dark:text-zinc-600"
+                }`}
+              >
+                {state === "done" ? "✓" : i + 1}
+              </span>
+              <span
+                className={`hidden text-xs sm:inline ${
+                  state === "active"
+                    ? "font-medium text-zinc-900 dark:text-zinc-100"
+                    : state === "done"
+                      ? "text-zinc-500 dark:text-zinc-400"
+                      : "text-zinc-400 dark:text-zinc-600"
+                }`}
+              >
+                {step.label}
+              </span>
             </span>
             {i < STAGES.length - 1 && (
-              <span aria-hidden className="text-zinc-300 dark:text-zinc-700">
-                ·
-              </span>
+              <span
+                aria-hidden
+                className={`h-px w-4 sm:w-6 ${
+                  i < activeIndex
+                    ? "bg-emerald-500/50"
+                    : "bg-zinc-200 dark:bg-zinc-800"
+                }`}
+              />
             )}
           </li>
         );
