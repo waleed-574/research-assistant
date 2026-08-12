@@ -28,22 +28,32 @@ emerald accent):
 
 ## How it works
 
+The app is an explicit five-state machine (defined in `src/components/research-app.tsx`), mirroring
+the brief's diagram. Every transition is logged to the console under the `state-machine` scope.
+
 ```
-  INTERVIEW ──(agent calls submit_form_draft)──► FORM ──(submit)──► RESEARCHING ──► REPORT
-      ▲                                           │
-      └──────────────── edit requests ────────────┘
+  INTERVIEWING ──▶ FORM_PREVIEW ──▶ FORM_ACTIVE ──▶ RESEARCHING ──▶ PRESENTING
+       ▲               │  ▲              │                              │
+       │      (edits)  ▼  └──(back)──────┘                              │
+       └───────────────┘        └──────────(change answers)◀───────────┘
 ```
 
-1. **Interview** — you describe your goal. The agent asks 2–4 focused questions, one at a time.
-2. **Form** — when it knows enough it calls its `submit_form_draft` tool. That tool call *is* the
-   signal to advance; the UI renders the returned graph, showing only reachable fields.
-3. **Research** — your answers go to the Research Agent, which searches the web in a bounded loop.
-   Every query and result count streams to the browser live over Server-Sent Events.
-4. **Report** — a validated, structured report: summary, key findings, sections with citations,
-   regional notes, and the full source list.
+1. **INTERVIEWING** — you describe your goal; the agent asks 2–4 focused questions, one at a time.
+   When it knows enough it calls its `submit_form_draft` tool — that tool call *is* the signal to
+   advance.
+2. **FORM_PREVIEW** — the generated form is shown read-only to review. Ask for edits in the interview
+   (the agent re-proposes and you stay in preview), or confirm to start filling it out.
+3. **FORM_ACTIVE** — the form is editable; conditional fields appear as you answer, with live
+   validation. You can step **back** to the preview without losing your answers.
+4. **RESEARCHING** — your answers go to the Research Agent, which searches the web in a bounded loop.
+   Every query and result count streams to the browser live over Server-Sent Events. Cancelling
+   returns you to FORM_ACTIVE.
+5. **PRESENTING** — a validated, structured report: summary, key findings, sections with citations,
+   regional notes, and the full source list. "Change answers" steps **back** to FORM_ACTIVE.
 
-You can go back and ask for form changes at any point ("add a field for team size", "make budget
-optional"); the agent resends the whole revised form and your existing answers are carried over.
+**Backward navigation** is supported throughout: back to review from filling, back to filling from a
+report, edits at any point (the agent resends the whole revised form and your existing answers are
+carried over), and "Start over" from anywhere.
 
 ---
 

@@ -22,6 +22,7 @@ import {
   validateAnswers,
   visibleFields,
 } from "@/lib/form-logic";
+import { logger } from "@/lib/logger";
 import { ChatInterview } from "./chat-interview";
 import { FormRenderer } from "./form-renderer";
 import { LocationBar } from "./location-bar";
@@ -29,28 +30,47 @@ import { ReportView } from "./report-view";
 import { ResearchProgress } from "./research-progress";
 
 /**
- * The state machine for the whole flow:
+ * The state machine for the whole flow. The five states mirror the brief's
+ * diagram exactly:
  *
- *   INTERVIEW ──(agent calls submit_form_draft)──► FORM ──(submit)──► RESEARCHING ──► REPORT
- *       ▲                                          │
- *       └──────────── edit requests ───────────────┘
+ *   INTERVIEWING ──▶ FORM_PREVIEW ──▶ FORM_ACTIVE ──▶ RESEARCHING ──▶ PRESENTING
+ *        ▲               │  ▲              │                              │
+ *        │      (edits)  ▼  └──(back)──────┘                              │
+ *        └───────────────┘        └──────────(change answers)◀───────────┘
+ *
+ * Transitions (every one is logged, per the brief's "log state changes"):
+ *   INTERVIEWING → FORM_PREVIEW   agent proposes a form (submit_form_draft)
+ *   FORM_PREVIEW → FORM_PREVIEW   user asks for edits; agent re-proposes
+ *   FORM_PREVIEW → FORM_ACTIVE    user confirms and starts filling it out
+ *   FORM_ACTIVE  → FORM_PREVIEW   user steps back to review        (backward)
+ *   FORM_ACTIVE  → RESEARCHING    user submits a valid form
+ *   RESEARCHING  → PRESENTING     research completes
+ *   RESEARCHING  → FORM_ACTIVE    user cancels, or an error        (backward)
+ *   PRESENTING   → FORM_ACTIVE    user revisits their answers      (backward)
+ *   any          → INTERVIEWING   start over
  *
  * All agent behaviour lives server-side in src/mastra; this component only moves
  * data between the two routes and the views.
  */
 
-type Stage = "interview" | "form" | "researching" | "report";
+type Stage =
+  | "interviewing"
+  | "form_preview"
+  | "form_active"
+  | "researching"
+  | "presenting";
 
 const STAGES: { id: Stage; label: string; heading: string }[] = [
-  { id: "interview", label: "Interview", heading: "What do you want to research?" },
-  { id: "form", label: "Your form", heading: "Review your form" },
+  { id: "interviewing", label: "Interview", heading: "What do you want to research?" },
+  { id: "form_preview", label: "Preview", heading: "Review your form" },
+  { id: "form_active", label: "Fill out", heading: "Fill out your form" },
   { id: "researching", label: "Research", heading: "Researching your question" },
-  { id: "report", label: "Report", heading: "Your research report" },
+  { id: "presenting", label: "Report", heading: "Your research report" },
 ];
 
 export function ResearchApp() {
   const [location, setLocation] = useState<UserLocation | null>(null);
-  const [stage, setStage] = useState<Stage>("interview");
+  const [stage, setStage] = useState<Stage>("interviewing");
   const [error, setError] = useState<string | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -64,6 +84,17 @@ export function ResearchApp() {
   const [events, setEvents] = useState<ResearchEvent[]>([]);
   const [result, setResult] = useState<ResearchResult | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  // Log every state transition — an explicit requirement, and the clearest
+  // window onto the state machine. Ref rather than logging inline so all paths
+  // (including reset) are captured in one place.
+  const prevStage = useRef<Stage>(stage);
+  useEffect(() => {
+    if (prevStage.current !== stage) {
+      logger.info("state-machine", `${prevStage.current} → ${stage}`);
+      prevStage.current = stage;
+    }
+  }, [stage]);
 
   // Detect location once on load. A failure here is not fatal — the agents have
   // an explicit "location unknown" prompt path.
@@ -108,7 +139,9 @@ export function ResearchApp() {
           setForm(revised);
           setFieldErrors({});
           setShowValidation(false);
-          setStage("form");
+          // Any freshly proposed form lands in PREVIEW for the user to confirm,
+          // even an edit made while filling it out.
+          setStage("form_preview");
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : String(err));
@@ -155,14 +188,14 @@ export function ResearchApp() {
         controller.signal,
       );
       setResult(research);
-      setStage("report");
+      setStage("presenting");
     } catch (err) {
       if (controller.signal.aborted) {
-        setStage("form");
+        setStage("form_active");
         return;
       }
       setError(err instanceof Error ? err.message : String(err));
-      setStage("form");
+      setStage("form_active");
     } finally {
       abortRef.current = null;
     }
@@ -170,7 +203,7 @@ export function ResearchApp() {
 
   const reset = () => {
     abortRef.current?.abort();
-    setStage("interview");
+    setStage("interviewing");
     setMessages([]);
     setForm(null);
     setAnswers({});
@@ -185,8 +218,13 @@ export function ResearchApp() {
     () => (form ? visibleFields(form, answers).length : 0),
     [answers, form],
   );
+  const conditionalCount = useMemo(
+    () => (form ? form.fields.filter((f) => f.dependsOn).length : 0),
+    [form],
+  );
 
   const activeIndex = STAGES.findIndex((s) => s.id === stage);
+  const onForm = stage === "form_preview" || stage === "form_active";
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-6 py-12">
@@ -200,7 +238,7 @@ export function ResearchApp() {
               {STAGES[activeIndex]?.heading}
             </h1>
           </div>
-          {stage !== "interview" && (
+          {stage !== "interviewing" && (
             <button
               type="button"
               onClick={reset}
@@ -227,8 +265,8 @@ export function ResearchApp() {
         </div>
       )}
 
-      {/* ── Interview ─────────────────────────────────────────────────── */}
-      {(stage === "interview" || stage === "form") && (
+      {/* ── Interview chat ────────────────────────────────────────────── */}
+      {(stage === "interviewing" || onForm) && (
         <section className="flex flex-col gap-4">
           {messages.length === 0 && (
             <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -248,8 +286,13 @@ export function ResearchApp() {
             </div>
           )}
 
-          {stage === "form" && messages.length > 0 ? (
-            <details className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-5 dark:border-zinc-800 dark:bg-zinc-900/40">
+          {onForm && messages.length > 0 ? (
+            // While reviewing or filling, the interview folds into an editor:
+            // open during PREVIEW (edits are expected), collapsed during ACTIVE.
+            <details
+              open={stage === "form_preview"}
+              className="rounded-2xl border border-zinc-200 bg-zinc-50/60 p-5 dark:border-zinc-800 dark:bg-zinc-900/40"
+            >
               <summary className="cursor-pointer text-sm font-medium text-zinc-700 dark:text-zinc-300">
                 Interview &amp; edits ({messages.length} messages)
               </summary>
@@ -279,12 +322,12 @@ export function ResearchApp() {
         </section>
       )}
 
-      {/* ── Form ──────────────────────────────────────────────────────── */}
-      {stage === "form" && form && (
+      {/* ── Form: PREVIEW (read-only, confirm) & ACTIVE (fill, submit) ─── */}
+      {onForm && form && (
         <section className="flex flex-col gap-6 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm shadow-zinc-900/5 sm:p-8 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-black/20">
           <div>
             <span className="font-mono text-[11px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-              Generated form
+              {stage === "form_preview" ? "Preview · read-only" : "Filling out"}
             </span>
             <h2 className="mt-2 text-lg font-semibold text-zinc-900 dark:text-zinc-50">
               {form.title}
@@ -296,33 +339,62 @@ export function ResearchApp() {
             )}
             <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-zinc-400 dark:text-zinc-500">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/70" />
-              {visibleCount} of {form.fields.length} fields shown — the rest
-              appear based on your answers.
+              {stage === "form_preview"
+                ? `${form.fields.length} field${form.fields.length === 1 ? "" : "s"}${
+                    conditionalCount
+                      ? `, ${conditionalCount} shown conditionally as you answer`
+                      : ""
+                  }.`
+                : `${visibleCount} of ${form.fields.length} fields shown — the rest appear based on your answers.`}
             </p>
           </div>
 
           <FormRenderer
             form={form}
             answers={answers}
-            errors={showValidation ? fieldErrors : {}}
+            errors={stage === "form_active" && showValidation ? fieldErrors : {}}
+            disabled={stage === "form_preview"}
             onChange={updateAnswer}
           />
 
-          <div className="flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-800">
-            <button
-              type="button"
-              onClick={startResearch}
-              className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
-              Run research
-            </button>
-            {showValidation && Object.keys(fieldErrors).length > 0 && (
-              <span className="text-xs text-red-600 dark:text-red-400">
-                Fix {Object.keys(fieldErrors).length} field
-                {Object.keys(fieldErrors).length === 1 ? "" : "s"} above.
+          {stage === "form_preview" ? (
+            <div className="flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={() => setStage("form_active")}
+                className="inline-flex items-center gap-2 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              >
+                Fill out the form
+                <span aria-hidden>→</span>
+              </button>
+              <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                or ask for changes in the interview above.
               </span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3 border-t border-zinc-200 pt-5 dark:border-zinc-800">
+              <button
+                type="button"
+                onClick={startResearch}
+                className="rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              >
+                Run research
+              </button>
+              <button
+                type="button"
+                onClick={() => setStage("form_preview")}
+                className="text-xs font-medium text-zinc-500 underline-offset-4 transition-colors hover:text-zinc-900 hover:underline dark:text-zinc-400 dark:hover:text-zinc-100"
+              >
+                ← Back to review
+              </button>
+              {showValidation && Object.keys(fieldErrors).length > 0 && (
+                <span className="text-xs text-red-600 dark:text-red-400">
+                  Fix {Object.keys(fieldErrors).length} field
+                  {Object.keys(fieldErrors).length === 1 ? "" : "s"} above.
+                </span>
+              )}
+            </div>
+          )}
         </section>
       )}
 
@@ -344,8 +416,8 @@ export function ResearchApp() {
         </section>
       )}
 
-      {/* ── Report ────────────────────────────────────────────────────── */}
-      {stage === "report" && result && (
+      {/* ── Presenting ────────────────────────────────────────────────── */}
+      {stage === "presenting" && result && (
         <section className="flex flex-col gap-8">
           <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm shadow-zinc-900/5 sm:p-8 dark:border-zinc-800 dark:bg-zinc-900 dark:shadow-black/20">
             <ReportView
@@ -357,7 +429,7 @@ export function ResearchApp() {
           <div className="flex flex-wrap gap-3 border-t border-zinc-200 pt-6 dark:border-zinc-800">
             <button
               type="button"
-              onClick={() => setStage("form")}
+              onClick={() => setStage("form_active")}
               className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:border-zinc-400 dark:border-zinc-700 dark:text-zinc-300"
             >
               Change answers
@@ -419,7 +491,7 @@ function Stepper({ current }: { current: Stage }) {
             {i < STAGES.length - 1 && (
               <span
                 aria-hidden
-                className={`h-px w-4 sm:w-6 ${
+                className={`h-px w-3 sm:w-5 ${
                   i < activeIndex
                     ? "bg-emerald-500/50"
                     : "bg-zinc-200 dark:bg-zinc-800"
