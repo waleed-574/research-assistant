@@ -33,15 +33,15 @@ export function researchMaxSteps(): number {
 /**
  * Whether to serve captured fixtures instead of calling the agents, from
  * `USE_AGENT_FIXTURES`. Lets the whole UI be developed and demoed with zero API
- * calls.
+ * calls — including a public demo deploy that must not spend anyone's credits.
  *
- * Refuses to engage in a production build regardless of the flag: serving a
- * canned report as though it were freshly researched would be a lie to the user,
- * and it is exactly the kind of setting that gets left on by accident.
+ * It only engages when the flag is set *explicitly*, so it is never accidental;
+ * and every fixture reply is labelled "(demo)" with a banner on the page, so a
+ * visitor is never misled into thinking canned data was freshly researched. That
+ * honesty is what makes it safe to run in production for a demo.
  */
 // Not named `use…` — that prefix makes ESLint treat it as a React hook.
 export function fixturesEnabled(): boolean {
-  if (process.env.NODE_ENV === "production") return false;
   const raw = process.env.USE_AGENT_FIXTURES?.trim().toLowerCase();
   return raw === "1" || raw === "true" || raw === "yes";
 }

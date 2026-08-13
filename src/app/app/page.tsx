@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ResearchApp } from "@/components/research-app";
 import { Logo } from "@/components/logo";
+import { fixturesEnabled } from "@/mastra/config";
 
 export const metadata: Metadata = {
   title: "Research Assistant — App",
@@ -15,8 +16,13 @@ export const metadata: Metadata = {
  * interactive client flow. Every agent call still goes through the API routes.
  */
 export default function AppPage() {
+  // Read at render (build time for this static page). On the demo deploy this is
+  // true, so visitors always see it's running on sample data.
+  const demo = fixturesEnabled();
+
   return (
     <div className="flex flex-1 flex-col bg-white dark:bg-zinc-950">
+      {demo && <DemoBanner />}
       <header className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/80 backdrop-blur dark:border-zinc-800/80 dark:bg-zinc-950/80">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-3">
           <Link
@@ -37,6 +43,22 @@ export default function AppPage() {
       <main className="flex flex-1 flex-col">
         <ResearchApp />
       </main>
+    </div>
+  );
+}
+
+/**
+ * Honest label for the public demo: it replays a captured sample run so it costs
+ * nothing and never breaks, whatever the traffic. Shown only when fixtures are on.
+ */
+function DemoBanner() {
+  return (
+    <div className="border-b border-emerald-200 bg-emerald-50 dark:border-emerald-900/50 dark:bg-emerald-950/40">
+      <p className="mx-auto w-full max-w-3xl px-6 py-2 text-center text-xs text-emerald-800 dark:text-emerald-200">
+        <span className="font-medium">Demo mode</span> — this replays one captured
+        sample run (no API key, no cost). Clone the repo to run it live on your own
+        questions.
+      </p>
     </div>
   );
 }

@@ -35,11 +35,11 @@ export const fixtureResearchSteps = researchRun.steps ?? 0;
 
 /** The interview reply used before the fixture form is proposed. */
 export const FIXTURE_INTERVIEW_QUESTION =
-  "(fixture mode) Got it. One thing before I build the form: will you be training models locally, or mostly using remote/cloud compute?";
+  "(demo) Got it. One thing before I build the form: will you be training models locally, or mostly using remote/cloud compute?";
 
 /** The reply that accompanies the fixture form. */
 export const FIXTURE_FORM_REPLY =
-  "(fixture mode) Here's your research form — replayed from a captured response, so no API call was made.";
+  "(demo) Here's your research form — replayed from a captured response, so no API call was made.";
 
 /**
  * How many messages the user must have sent before the fixture form appears.

@@ -76,9 +76,10 @@ describe("fixturesEnabled", () => {
     }
   });
 
-  it("refuses to engage in production even when the flag is set", () => {
-    // Serving a canned report as a fresh one would mislead the user, and this is
-    // exactly the flag that gets left on by accident.
+  it("engages in production when explicitly flagged (for the demo deploy)", () => {
+    // A public demo deploy runs on fixtures so it can't spend anyone's credits.
+    // The explicit flag + the "(demo)" labels/banner keep it honest, so unlike
+    // an accidental toggle this is safe in production.
     process.env.USE_AGENT_FIXTURES = "1";
     const previous = process.env.NODE_ENV;
     try {
@@ -86,7 +87,7 @@ describe("fixturesEnabled", () => {
         value: "production",
         configurable: true,
       });
-      expect(fixturesEnabled()).toBe(false);
+      expect(fixturesEnabled()).toBe(true);
     } finally {
       Object.defineProperty(process.env, "NODE_ENV", {
         value: previous,
