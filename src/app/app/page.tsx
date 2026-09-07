@@ -21,9 +21,14 @@ export default function AppPage() {
   const demo = fixturesEnabled();
 
   return (
-    <div className="flex flex-1 flex-col bg-white dark:bg-zinc-950">
+    <div className="relative flex flex-1 flex-col bg-zinc-950">
+      {/* Ambient emerald glow behind the top of the app, matching the landing page. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-0 h-72 w-[600px] -translate-x-1/2 rounded-full bg-emerald-500/10 blur-[100px]"
+      />
       {demo && <DemoBanner />}
-      <header className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/80 backdrop-blur dark:border-zinc-800/80 dark:bg-zinc-950/80">
+      <header className="sticky top-0 z-20 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-3xl items-center justify-between px-6 py-3">
           <Link
             href="/"
@@ -40,7 +45,7 @@ export default function AppPage() {
           </Link>
         </div>
       </header>
-      <main className="flex flex-1 flex-col">
+      <main className="relative flex flex-1 flex-col">
         <ResearchApp />
       </main>
     </div>

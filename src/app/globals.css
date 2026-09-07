@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
+/* Dark-first, committed. The `dark:` utilities are driven by a `.dark` class on
+   <html> (set in layout.tsx) rather than the OS preference, so the whole app
+   commits to its dark theme — that's what makes the emerald glow aesthetic work. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #09090b; /* zinc-950 */
+  --foreground: #fafafa; /* zinc-50 */
 }
 
 @theme inline {
@@ -10,20 +15,12 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-serif: var(--font-playfair);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  /* The layout loads Geist and exposes it as --font-sans; the boilerplate's
-     Arial override was throwing that away. */
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
@@ -36,5 +33,16 @@ body {
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* Slow drift for the hero's ambient emerald glow. */
+@keyframes glowPulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.85;
   }
 }

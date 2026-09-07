@@ -23,7 +23,7 @@ export function ReportView({
   return (
     <article className="flex flex-col gap-8">
       <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+        <h1 className="font-serif text-3xl font-medium tracking-tight text-zinc-900 dark:text-zinc-50">
           {report.title.trim()}
         </h1>
         <p className="text-[15px] leading-7 text-zinc-600 dark:text-zinc-300">

@@ -234,7 +234,7 @@ export function ResearchApp() {
             <span className="font-mono text-[11px] uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
               Step {activeIndex + 1} of {STAGES.length}
             </span>
-            <h1 className="mt-1.5 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+            <h1 className="mt-1.5 font-serif text-3xl font-medium tracking-tight text-zinc-50">
               {STAGES[activeIndex]?.heading}
             </h1>
           </div>
